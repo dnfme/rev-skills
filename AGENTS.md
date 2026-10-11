@@ -11,7 +11,7 @@
 ## 使用方式
 
 - 本机为 Claude Code/Gemini CLI/Cline/Codex：克隆仓库后 `npx rev-skills install --target <工具名>` 或直接引用 .claude/skills/ 目录
-- DeepSeek Harness：`npx rev-skills install --target dsh [--global|--project]` 装进 DSH 技能根；或用独立预设 `node bin/dsh.mjs preset install --apply`（bundle `dsh/`，为预设自带本库技能层、可用 `REV_SKILLS_DIR` 覆盖），见 docs/dsh-integration.md
+- DeepSeek Harness：`npx rev-skills install --target dsh [--global|--project]` 装进 DSH 技能根；或用独立预设 `dsh plugin --profile <profile> add rev-skills` 或 `node bin/dsh.mjs preset install --apply`（bundle 即根包，补丁 `dsh.patch.yml`，为预设自带本库技能层、可用 `REV_SKILLS_DIR` 覆盖），见 docs/dsh-integration.md
 - Cursor/Copilot/Windsurf：`npx rev-skills install --target cursor` 等生成规则文件
 - 完整安装说明见 README.md
 

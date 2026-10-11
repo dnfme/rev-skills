@@ -2,7 +2,7 @@
 
 本文是 rev-skills 与 DSH（DeepSeek Harness）集成的长期参考：DSH 在本库语境里是什么、两条集成路线的差别、DSH 强制执行的兼容规则、安装与卸载命令、预设选择方式、验证方法、排错表，以及维护时必须成对同步的文件。
 
-面向 DSH 侧的使用说明（bundle 的安装细节与预设清单）见 `dsh/README.md`；命令行实现见 `bin/dsh.mjs` 与 `bin/install.mjs`。
+命令行实现见 `bin/dsh.mjs` 与 `bin/install.mjs`；bundle 的补丁本体是仓库根的 `dsh.patch.yml`。
 
 ## 1. DSH 在本库语境里是什么
 
@@ -46,7 +46,7 @@ npx rev-skills uninstall --target dsh --global
 
 ### 路线二：独立预设（自带技能层）
 
-`dsh/` 是一个 bundle 包（`rev-skills-dsh-preset`），它插入一行预设 `preset-rev-skills`：
+本仓库的**根包自身即 bundle**（包名 `rev-skills`）：根 `package.json` 里的 `dsh.bundle.patch` 指向仓库根 `dsh.patch.yml`，该补丁插入一行预设 `preset-rev-skills`。不需要第二个包，也就没有第二处版本号要同步。
 
 - 预设显示 id（`config.id`）为 `rev-skills`，显示名「逆向工程（rev-skills）」，`order` 为 40；
 - 该预设自带的 `skill-filesystem` 实例用 `includeDefaultRoots: false`，即**该实例自身**不声明第 100–600 档的根，技能根完全由 `customSkillDirs` 指定；但 DSH 读取技能时会把这个预设层与全局层合并，所以项目/用户技能仍与会话可见（同名条目以更近的预设层为准），其他预设不受影响；
@@ -58,12 +58,13 @@ npx rev-skills uninstall --target dsh --global
 |---|---|---|
 | 1 | `REV_SKILLS_DIR` | 环境变量，优先级最高；取值是仓库根目录时解析为 `<dir>/.claude/skills`，取值是技能目录本身时原样使用 |
 | 2 | `<DSH_HOME>/skills` | 默认 `~/.dsh/skills`（Windows `%USERPROFILE%\.dsh\skills`）——即「路线一」装进去的位置 |
-| 3 | `<rev-skills 包目录>/.claude/skills` | 按包名解析（作为依赖安装时命中） |
-| 4 | `<rev-skills-dsh-preset 包目录>/../.claude/skills` | 直接依赖 `dsh/` 目录时命中 |
+| 3 | `<rev-skills 包目录>/.claude/skills` | 按包名解析；本包即 bundle，装进 profile 的 `node_modules` 时命中 |
 
 候选都不可用时回落到第 2 项；目录暂缺不报错（提供方会持续探测）。
 
 按 DSH `skills` 服务的实际契约，预设作用域的提供方与全局层是**合并**关系而非替换：同名技能以更近的层胜出。因此该预设是把 rev-skills 技能根作为自己的一层加入，用户项目与家目录下的技能仍可见；`includeDefaultRoots: false` 只影响这个预设实例自身的根列表。
+
+**前置要求**：宿主需提供两个包——`@deepseek-ai/dsh-agent-preset`（agent preset 声明能力）与 `@deepseek-ai/dsh-skill-filesystem`（本地技能目录发现能力），官方发行版自带。bundle 自身零运行时依赖，不需要为它单独跑安装。
 
 ```bash
 node bin/dsh.mjs check [--dir <skillsRoot>] [--json]
@@ -75,18 +76,34 @@ node bin/dsh.mjs preset uninstall [--profile-dir <dir>] [--apply]
 
 `preset install` / `preset uninstall` 默认是 dry-run，打印将要做的编辑；加 `--apply` 才写文件（写入前备份，卸载时存在备份则从备份还原）。
 
-等价的手工路径（等价于 DSH 的插件管理器操作）：bundle 是一个 npm 包，在 `package.json` 里用 `"dsh": { "bundle": { "patch": "./cordis.patch.yml" } }` 声明补丁文件，然后把它加进 profile 的 `package.json`：
+安装这条路线最省事的方式是交给 DSH 自带的包管理器——它的目标参数既可以是 npm 包名（从 registry 装已发布版本），也可以是本地路径（`link:` / `file:` 规格）：
+
+```bash
+dsh plugin --profile <profile> add rev-skills                  # registry 上的已发布版本
+dsh plugin --profile <profile> add link:/path/to/rev-skills    # 本地工作区（改补丁立即生效）
+```
+
+成功后它会**自动把 `rev-skills` 追加进该 profile 的 `dsh.profile.bundles`**（实测：从空 bundles 开始，`add` 完成后 bundles 变为 `[..., "rev-skills"]`）；失败则还原 `package.json`、`pnpm-lock.yaml` 与 `node_modules`，不留半截状态。GUI 插件管理器走同一套机制。
+
+手工等价写法是把下面两处同时写进 profile 的 `package.json`：
 
 ```jsonc
 {
-  "dependencies": { "rev-skills-dsh-preset": "file:../rev-skills/dsh" },
-  "dsh": { "profile": { "bundles": [ "...", "rev-skills-dsh-preset" ] } }
+  "dependencies": { "rev-skills": "link:/path/to/rev-skills" },
+  "dsh": { "profile": { "bundles": [ "...", "rev-skills" ] } }
 }
 ```
 
 两处必须同时存在：**bundle 行在 `dsh.profile.bundles` 里，且依赖能解析到该包**。profile 的 `package.json` 位于 `$env:DSH_PROFILE_DIR`（Windows 默认 `C:\Users\<用户>\.dsh\profiles\<profile>\package.json`）。
 
-DSH 的插件管理器支持两种安装来源：绝对本地路径，或 `link:` / `file:` 规格；GUI 里可从插件管理器直接安装，无需手改 JSON。
+卸载走对称的一条命令，它会同时摘掉依赖与 `dsh.profile.bundles` 里的那一行（实测），随后重启 DSH；已存在的会话保留创建时的插件组合，需新开会话：
+
+```bash
+dsh plugin --profile <profile> remove rev-skills
+node bin/dsh.mjs preset uninstall --apply    # 仓库自带 CLI 的等价路径（有备份时从备份还原）
+```
+
+**发布面的一个硬约束**：bundle 的补丁文件必须出现在该包 `package.json` 的 `files` 列表里。pnpm 处理 `file:` 依赖时按 `files` 复制内容，漏列时 `add` 会报 `failed to read overlay …/node_modules/rev-skills/dsh.patch.yml: ENOENT` 并整体回滚（测试里有对应回归断言）。
 
 适用场景：需要一个只见得到本库技能、且带固定工具与提示词的独立 agent 预设。
 
@@ -141,10 +158,11 @@ YAML 本身按换行解析，DSH 允许分界行尾带 CR；本库随库脚本�
 
 | 项 | 一处 | 另一处 |
 |---|---|---|
-| 版本号 | 根 `package.json` → `version` | `dsh/package.json` → `version` |
-| bundle 名 | `dsh/package.json` → `name` | profile `package.json` → `dsh.profile.bundles` 的对应行 + 同名依赖 |
-| 补丁文件 | `dsh/package.json` → `dsh.bundle.patch` | `dsh/cordis.patch.yml` 实际路径 |
-| 预设 id | `dsh/cordis.patch.yml` 的 `config.id`（`rev-skills`） | `dsh/README.md` 与本文档的说明 |
-| 技能根 | `dsh/cordis.patch.yml` 的 `customSkillDirs` | `REV_SKILLS_DIR` 覆盖逻辑与本文档第 2 节 |
+| 补丁文件 | 根 `package.json` → `dsh.bundle.patch` | `dsh.patch.yml` 实际路径，且该路径必须出现在根 `package.json` 的 `files` 里 |
+| bundle 名 | 根 `package.json` → `name`（`rev-skills`） | profile `package.json` → `dsh.profile.bundles` 的对应行 + 同名依赖；本文档与 README 的安装示例 |
+| 预设 id | `dsh.patch.yml` 的 `config.id`（`rev-skills`） | 本文档的说明 |
+| 技能根 | `dsh.patch.yml` 的 `customSkillDirs` 解析顺序 | `REV_SKILLS_DIR` 覆盖逻辑、`bin/dsh.mjs` 的 `resolveLocalSkillRoot` 与本文档第 2 节的候选表 |
+
+版本号不再有第二处：bundle 就是根包，根 `package.json` 的 `version` 与 `.claude-plugin/marketplace.json` 成对即可。
 
 发布流程与其他宿主一致：`npm test` 通过 → git tag → npm publish → 同步 `package.json` 与 `.claude-plugin/marketplace.json` 的版本号。

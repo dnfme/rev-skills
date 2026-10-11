@@ -66,7 +66,7 @@ node bin/dsh.mjs preset spec                    # print preset config and resolv
 node bin/dsh.mjs preset install --apply         # enable preset-rev-skills (config id: rev-skills)
 ```
 
-The `dsh/` bundle can also be installed from the DSH GUI plugin manager (bundle name `rev-skills-dsh-preset`, from an absolute local path or a `link:` / `file:` spec). The skill directory can be overridden with the `REV_SKILLS_DIR` environment variable. See [docs/dsh-integration.md](docs/dsh-integration.md) (Chinese) for details and troubleshooting.
+The bundle can also be installed with DSH's own package manager: `dsh plugin --profile <profile> add rev-skills` (use a `link:` / `file:` spec for a local path; on success the package is registered in that profile's `dsh.profile.bundles` automatically). The bundle is this repository's root package, and its patch is `dsh.patch.yml` at the repository root. The skill directory can be overridden with the `REV_SKILLS_DIR` environment variable. See [docs/dsh-integration.md](docs/dsh-integration.md) (Chinese) for details and troubleshooting.
 
 ## Tool support
 
@@ -79,7 +79,7 @@ The `dsh/` bundle can also be installed from the DSH GUI plugin manager (bundle 
 | Cursor | `--target cursor` → `.cursor/rules/*.mdc` | rule aggregation (knowledge + flow, no on-demand loading) |
 | GitHub Copilot | `--target copilot` → `.github/copilot-instructions.md` | rule aggregation |
 | Windsurf | `--target windsurf` → `.windsurf/rules/*.md` | rule aggregation |
-| DeepSeek Harness | `--target dsh` → `~/.dsh/skills` (or `.dsh/skills`) | native skills (on-demand loading); a standalone preset route is also available (`dsh/` bundle: the preset brings its own skill layer while project and user roots are still merged, `REV_SKILLS_DIR` override), see [docs/dsh-integration.md](docs/dsh-integration.md) |
+| DeepSeek Harness | `--target dsh` → `~/.dsh/skills` (or `.dsh/skills`) | native skills (on-demand loading); a standalone preset route is also available (the bundle is the root package `rev-skills`: the preset brings its own skill layer while project and user roots are still merged, `REV_SKILLS_DIR` override), see [docs/dsh-integration.md](docs/dsh-integration.md) |
 
 ## Skill map (122)
 

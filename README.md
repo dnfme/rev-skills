@@ -66,7 +66,7 @@ node bin/dsh.mjs preset spec                    # 查看预设配置与技能根
 node bin/dsh.mjs preset install --apply         # 启用 preset-rev-skills（config id: rev-skills）
 ```
 
-也可从 DSH 的 GUI 插件管理器安装 `dsh/` bundle（bundle 名 `rev-skills-dsh-preset`，支持绝对本地路径或 `link:` / `file:` 规格）。技能目录可用环境变量 `REV_SKILLS_DIR` 覆盖。细节与排错见 [docs/dsh-integration.md](docs/dsh-integration.md)。
+也可用 DSH 自带的包管理器安装：`dsh plugin --profile <profile> add rev-skills`（本地路径用 `link:` / `file:` 规格；成功后会自动登记进该 profile 的 `dsh.profile.bundles`）。bundle 就是本仓库根包，补丁为根目录的 `dsh.patch.yml`。技能目录可用环境变量 `REV_SKILLS_DIR` 覆盖。细节与排错见 [docs/dsh-integration.md](docs/dsh-integration.md)。
 
 ## 多工具适配
 
@@ -79,7 +79,7 @@ node bin/dsh.mjs preset install --apply         # 启用 preset-rev-skills（con
 | Cursor | `--target cursor` → `.cursor/rules/*.mdc` | 规则聚合（知识+流程，无按需加载） |
 | GitHub Copilot | `--target copilot` → `.github/copilot-instructions.md` | 规则聚合 |
 | Windsurf | `--target windsurf` → `.windsurf/rules/*.md` | 规则聚合 |
-| DeepSeek Harness | `--target dsh` → `~/.dsh/skills`（或 `.dsh/skills`） | 原生技能（按需加载）；另有独立预设路线（`dsh/` bundle：为预设自带本库技能层，项目/用户技能根照常合并、可用 `REV_SKILLS_DIR` 覆盖），见 [docs/dsh-integration.md](docs/dsh-integration.md) |
+| DeepSeek Harness | `--target dsh` → `~/.dsh/skills`（或 `.dsh/skills`） | 原生技能（按需加载）；另有独立预设路线（bundle 即根包 `rev-skills`：为预设自带本库技能层，项目/用户技能根照常合并、可用 `REV_SKILLS_DIR` 覆盖），见 [docs/dsh-integration.md](docs/dsh-integration.md) |
 
 ## 技能导航（122）
 

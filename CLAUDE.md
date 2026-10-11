@@ -67,9 +67,9 @@ node bin/wxsource.mjs wechat <文章URL> [--md]
 两种集成形态，改动时都要与计数/清单同步：
 
 - **技能目录路线**：`npx rev-skills install --target dsh [--global|--project]`——写入 DSH 技能根（全局 `<dshHome>/skills`，项目 `.dsh/skills`）。DSH 按 Agent Skills 风格扫描，一层深度（`<root>/<name>/SKILL.md`），frontmatter 的 `---` 分界行与 YAML 合法性由 DSH 严格执行：不合法时记告警并**静默跳过该技能**（新技能要跑 `node validate.mjs`，别只看 `npm test` 的汇总行）。
-- **独立预设路线**：`dsh/` 是一个 npm bundle 包（`rev-skills-dsh-preset`），`dsh/package.json` 用 `"dsh": { "bundle": { "patch": "./cordis.patch.yml" } }` 指向补丁文件，补丁插入预设行 `preset-rev-skills`（`config.id` = `rev-skills`），该预设用 `includeDefaultRoots: false` + `customSkillDirs` 给预设自带本库 `.claude/skills` 技能层（该提供方实例不再重复扫描项目/用户技能根；技能服务读取时仍把预设层与全局层合并，同名以预设层为准，其他预设不受影响）；目录可用环境变量 `REV_SKILLS_DIR` 覆盖。启用方式是把包名加进 profile `package.json` 的 `dsh.profile.bundles` 并带上同名依赖（CLI 走 `node bin/dsh.mjs preset install --apply`），DSH 插件管理器也支持从绝对本地路径或 `link:` / `file:` 规格安装。
+- **独立预设路线**：**根包自身即 bundle**（`rev-skills`），根 `package.json` 用 `"dsh": { "bundle": { "patch": "./dsh.patch.yml" } }` 指向仓库根的补丁文件，补丁插入预设行 `preset-rev-skills`（`config.id` = `rev-skills`），该预设用 `includeDefaultRoots: false` + `customSkillDirs` 给预设自带本库 `.claude/skills` 技能层（该提供方实例不再重复扫描项目/用户技能根；技能服务读取时仍把预设层与全局层合并，同名以预设层为准，其他预设不受影响）；目录可用环境变量 `REV_SKILLS_DIR` 覆盖。启用方式：`dsh plugin --profile <profile> add rev-skills`（宿主的包管理器会自动登记 `dsh.profile.bundles` 行；本地路径用 `link:` / `file:` 规格），或仓库自带 CLI `node bin/dsh.mjs preset install --apply`。
 
-必须成对同步的项（历史上漏同步过）：根 `package.json` 的 `version` ↔ `dsh/package.json` 的 `version`；`dsh/package.json` 的 `name` ↔ profile 里 `dsh.profile.bundles` 的对应行与同名依赖；`dsh.bundle.patch` ↔ `dsh/cordis.patch.yml` 实际路径；补丁里的 `config.id`（`rev-skills`）↔ `dsh/README.md` 与 `docs/dsh-integration.md` 的说明。
+必须成对同步的项（历史上漏同步过）：根 `package.json` 的 `dsh.bundle.patch` ↔ `dsh.patch.yml` 实际路径 ↔ **该路径必须出现在根 `package.json` 的 `files` 里**（pnpm 按 `files` 复制 `file:` 依赖，漏列则 `dsh plugin add` 报 `failed to read overlay … ENOENT` 并整体回滚，测试有回归断言）；根 `package.json` 的 `name` ↔ profile 里 `dsh.profile.bundles` 的对应行与同名依赖；补丁里的 `config.id`（`rev-skills`）↔ `docs/dsh-integration.md` 的说明。
 
 标准预设会裁剪超过 8192 字符的工具结果，本库 32 个 `SKILL.md` 的文件字符数超过该阈值（CRLF 检出下为 34；`node bin/dsh.mjs check` 会逐条报出），被加载时可能被截断（完整内容直接读文件）。集成全貌与排错表见 `docs/dsh-integration.md`。
 
