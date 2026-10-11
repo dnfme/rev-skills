@@ -229,6 +229,24 @@ test('根 package.json 是合法 bundle 清单', () => {
   }
 });
 
+test('dsh.bundle.patch 指向的文件必须随包发布（files 里漏列即安装期失败）', () => {
+  const pkg = JSON.parse(readFileSync(PACKAGE_FILE, 'utf8'));
+  const rel = pkg.dsh?.bundle?.patch;
+  assert.equal(typeof rel, 'string', 'dsh.bundle.patch 必须存在');
+  // 归一成包内相对路径：'./dsh.patch.yml' 与 files 里的 'dsh.patch.yml' 视为同一项
+  const norm = (p) => p.replace(/^\.\//, '').split('\\').join('/');
+  const target = norm(rel);
+  const listed = (pkg.files ?? []).map(norm);
+  assert.ok(
+    listed.includes(target),
+    `dsh.bundle.patch 指向 ${rel}，但 package.json 的 files 里没有它；`
+      + 'pnpm 的 file: 安装按 files 复制，漏列会让 dsh plugin add 报 '
+      + 'failed to read overlay … ENOENT 并整体回滚',
+  );
+  // bundle 会被整包装进 profile 的 node_modules，不得带上运行时依赖
+  assert.equal(pkg.dependencies, undefined, 'bundle 包不得有运行时依赖');
+});
+
 test('根 LICENSE 是 Apache-2.0 全文，供随包发布的补丁使用', () => {
   const license = readFileSync(join(DSH_DIR, 'LICENSE'), 'utf8');
   assert.ok(license.includes('Apache License'), 'LICENSE 应含 Apache License 标题行');
