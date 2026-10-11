@@ -145,7 +145,7 @@ test('技能名文法与常量：kebab-case 正则与裁剪阈值', () => {
   assert.equal(SKILL_NAME_PATTERN.test('re--x'), false);
   assert.equal(SKILL_NAME_PATTERN.test('re-'), false);
   assert.equal(PRUNE_THRESHOLD_CHARS, 8192);
-  assert.equal(BUNDLE_PACKAGE, 'rev-skills-dsh-preset');
+  assert.equal(BUNDLE_PACKAGE, 'rev-skills');
   assert.equal(PRESET_ID, 'rev-skills');
 });
 
@@ -394,7 +394,7 @@ test('CLI preset status：一致时退出 0，未安装时退出 1，--json 可�
 // ---------- CLI：preset install / uninstall ----------
 
 test('CLI preset install：dry-run 不写文件，--apply 写前备份且幂等', () => {
-  assert.equal(bundleExists, true, '本任务交付了 dsh/ bundle，install 用例依赖它');
+  assert.equal(bundleExists, true, '根包即 bundle（dsh.patch.yml + dsh.bundle.patch），install 用例依赖它');
   withTempDir('dsh-install-', (dir) => {
     const profileFile = join(dir, 'package.json');
     const backupFile = join(dir, PROFILE_BACKUP);

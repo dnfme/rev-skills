@@ -5,7 +5,7 @@
     ".claude/skills",
     ".claude-plugin",
     "bin",
-    "dsh",
+    "dsh.patch.yml",
     "lib",
     "README.md",
     "README_EN.md",
@@ -16,6 +16,11 @@
   "bin": {
     "rev-skills": "bin/install.mjs",
     "rev-skills-dsh": "bin/dsh.mjs"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./dsh.patch.yml"
+    }
   },
   "scripts": {
     "test": "node validate.mjs && node --test tests/*.test.mjs",

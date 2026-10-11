@@ -27,10 +27,10 @@ import { parseFrontmatterFields } from '../lib/frontmatter.mjs';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
 export const REPO_ROOT = resolve(__dirname, '..');
-export const BUNDLE_DIR = join(REPO_ROOT, 'dsh');
+export const BUNDLE_DIR = REPO_ROOT;
 export const DEFAULT_SKILLS_ROOT = join(REPO_ROOT, '.claude', 'skills');
 
-export const BUNDLE_PACKAGE = 'rev-skills-dsh-preset';
+export const BUNDLE_PACKAGE = 'rev-skills';
 export const PRESET_ID = 'rev-skills';
 export const PROFILE_BACKUP = 'package.json.rev-skills.bak';
 
@@ -421,8 +421,8 @@ export function resolveLocalSkillRoot(env = process.env, repoRoot = REPO_ROOT) {
   add('REV_SKILLS_DIR（直接指向技能根）', rev || null);
   const dshHome = env.DSH_HOME || join(homedir(), '.dsh');
   add('$DSH_HOME/skills（无环境变量时的最终回落）', join(dshHome, 'skills'));
-  add('仓库技能根 <repo>/.claude/skills（补丁里由 bundle/.. 解析得到）', join(repoRoot, '.claude', 'skills'));
-  candidates.push({ source: '从 rev-skills / rev-skills-dsh-preset 的 package.json 反解', root: null, exists: null, skills: null, resolvable: false });
+  add('仓库技能根 <repo>/.claude/skills（补丁里由包解析得到）', join(repoRoot, '.claude', 'skills'));
+  candidates.push({ source: '从 rev-skills 的 package.json 反解（本包即 bundle）', root: null, exists: null, skills: null, resolvable: false });
   const active = candidates.find((c) => c.resolvable && c.exists && (c.skills ?? 0) > 0) ?? null;
   return { candidates, active };
 }

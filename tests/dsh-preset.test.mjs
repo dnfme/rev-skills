@@ -10,9 +10,9 @@ import { tmpdir } from 'node:os';
 // 包名白名单、不继承默认技能根的 skill-filesystem 配置与 REV_SKILLS_DIR 覆盖逻辑、文件卫生。
 // 不断言技能计数：预设必须与技能增删解耦（技能数由 tests/counts.test.mjs 看住）。
 
-const DSH_DIR = fileURLToPath(new URL('../dsh/', import.meta.url));
+const DSH_DIR = fileURLToPath(new URL('../', import.meta.url));
 const PACKAGE_FILE = join(DSH_DIR, 'package.json');
-const PATCH_FILE = join(DSH_DIR, 'cordis.patch.yml');
+const PATCH_FILE = join(DSH_DIR, 'dsh.patch.yml');
 
 const PATCH_TEXT = readPatchText();
 // 顶层是 `- insert:` 一行，其值才是插入的行列表
@@ -212,38 +212,28 @@ function evalExpr(expr, baseUrl, opts = {}) {
   });
 }
 
-test('dsh/package.json 是合法 bundle 清单', () => {
+test('根 package.json 是合法 bundle 清单', () => {
   const pkg = JSON.parse(readFileSync(PACKAGE_FILE, 'utf8'));
-  assert.equal(pkg.name, 'rev-skills-dsh-preset');
+  assert.equal(pkg.name, 'rev-skills');
   assert.match(pkg.version, /^\d+\.\d+\.\d+/);
-  assert.equal(pkg.license, 'Apache-2.0');
+  assert.match(pkg.license, /Apache-2\.0/, 'bundle 随根包发布，许可证沿用根包');
   assert.equal(pkg.type, 'module');
-  assert.ok(typeof pkg.description === 'string' && pkg.description.trim().length > 0, 'description 应非空');
-  assert.deepEqual(pkg.dependencies, undefined, 'bundle 不得有运行时依赖（技能目录在运行时解析）');
   const rel = pkg.dsh?.bundle?.patch;
   assert.equal(typeof rel, 'string', 'dsh.bundle.patch 必须存在');
   const abs = join(DSH_DIR, rel);
   assert.ok(existsSync(abs), `dsh.bundle.patch 指向不存在的文件：${rel}`);
-  assert.ok(abs.startsWith(DSH_DIR), 'dsh.bundle.patch 必须落在 dsh/ 目录内');
+  assert.ok(abs.startsWith(DSH_DIR), 'dsh.bundle.patch 必须落在仓库内');
   assert.ok(Array.isArray(pkg.files) && pkg.files.length > 0);
   for (const f of pkg.files) {
     assert.ok(existsSync(join(DSH_DIR, f)), `files 里列了未随包发布的文件：${f}`);
   }
-  for (const key of ['main', 'exports', 'bin']) {
-    assert.equal(pkg[key], undefined, `${key} 不得指向未随包发布的文件`);
-  }
 });
 
-test('dsh/LICENSE 是仓库根 LICENSE 的 Apache-2.0 正文', () => {
+test('根 LICENSE 是 Apache-2.0 全文，供随包发布的补丁使用', () => {
   const license = readFileSync(join(DSH_DIR, 'LICENSE'), 'utf8');
   assert.ok(license.includes('Apache License'), 'LICENSE 应含 Apache License 标题行');
   assert.ok(license.includes('Version 2.0, January 2004'), 'LICENSE 应是 Apache-2.0 全文');
   assert.ok(license.includes('END OF TERMS AND CONDITIONS'), 'LICENSE 应是全文而非节选');
-  assert.ok(!license.includes('\r'), 'LICENSE 应是 LF 行尾，与 dsh/ 其余文件一致');
-  // 与仓库根 LICENSE 逐行同源（行尾差异允许：本文件统一成 LF）
-  const root = readFileSync(join(DSH_DIR, '..', 'LICENSE'), 'utf8');
-  const norm = (t) => t.replace(/\r\n/g, '\n');
-  assert.equal(norm(license), norm(root), 'LICENSE 内容应与仓库根 LICENSE 一致');
 });
 
 test('补丁里只有一行 preset 声明，身份与官方内置 preset 不冲突', () => {
@@ -289,8 +279,7 @@ test('skill-filesystem 行不继承默认技能根、只声明本库技能根，
   assert.ok(expr.includes('REV_SKILLS_DIR'), '表达式应支持 REV_SKILLS_DIR 覆盖');
   assert.ok(expr.includes('DSH_HOME'), '表达式应回落到 DSH 用户技能根（DSH_HOME）');
   assert.ok(expr.includes('node:os'), 'DSH 用户根应由 node:os 推出（os.homedir）');
-  assert.ok(expr.includes('rev-skills/package.json'), '表达式应支持从 rev-skills 包解析');
-  assert.ok(expr.includes('rev-skills-dsh-preset/package.json'), '表达式应支持从本 bundle 包解析');
+  assert.ok(expr.includes('rev-skills/package.json'), '表达式应支持从本包（rev-skills 即 bundle）解析');
   assert.ok(
     /(\.claude['"]?\s*,\s*['"]skills|\.claude\/skills)/.test(expr),
     '.claude 与 skills 应拼成同一个技能根',
@@ -336,12 +325,10 @@ test('技能根分辨率按「环境变量 -> DSH 用户根 -> 包解析」优�
   const fakeRepo = join(app, 'node_modules', 'rev-skills');
   const fakeKeys = join(fakeRepo, '.claude', 'skills', 're-fake');
   mkdirSync(fakeKeys, { recursive: true });
-  mkdirSync(join(app, 'node_modules', 'rev-skills-dsh-preset'), { recursive: true });
   writeFileSync(join(fakeRepo, 'package.json'), '{}');
-  writeFileSync(join(app, 'node_modules', 'rev-skills-dsh-preset', 'package.json'), '{}');
   writeFileSync(join(fakeKeys, 'SKILL.md'), 'x');
   try {
-    const baseUrl = join(app, 'node_modules', 'rev-skills-dsh-preset', 'package.json');
+    const baseUrl = join(fakeRepo, 'package.json');
     // DSH_HOME 指向一个不存在的目录，确保回落到包解析候选
     const viaPkg = evalExpr(expr, baseUrl, { revSkillsDir: '', dshHome: join(app, 'empty-dsh-home') });
     assert.equal(viaPkg, join(fakeRepo, '.claude', 'skills'));

@@ -1,17 +1,13 @@
-# rev-skills DSH bundle patch: one `- insert:` row declaring the independent
-# `rev-skills` agent preset, whose child entries mirror the shipped `cordis`
-# preset minus the Cordis-authoring rows and plan mode.
-# The `skill-filesystem` row sets `includeDefaultRoots: false`, so the preset
-# contributes the rev-skills root as its own layer instead of inheriting the
-# project and user roots. Catalog resolution still merges that layer with the
-# project and user roots of the viewing scope; a name present in both layers
-# resolves to this preset's layer, and other presets are unaffected.
-# Skill root: the `customSkillDirs` expression resolves the repository's
-# `.claude/skills` by probing, in order, `REV_SKILLS_DIR` (set it to the
-# repository root or straight to the skills directory), the DSH user skill root
-# (`$DSH_HOME/skills`, default `~/.dsh/skills`), the installed `rev-skills`
-# package, then this bundle's own package; the first existing candidate that
-# holds at least one `re-*` entry wins.
+# rev-skills 的 DSH bundle 补丁：本仓库根包（rev-skills）自身即 bundle，根 package.json
+# 用 dsh.bundle.patch 指向本文件（值为 ./dsh.patch.yml，且该文件已列进 files）。
+# 顶层一条 `- insert:` 行声明独立 agent preset `rev-skills`，其子条目对齐官方
+# `cordis` 预设（去掉 Cordis 编写相关的行与 plan mode）。
+# `skill-filesystem` 行设置 `includeDefaultRoots: false`，该 preset 贡献的是 rev-skills
+# 技能根这一层，不继承项目与用户技能根；技能目录解析仍会把该层与查看作用域的项目/
+# 用户根合并：同名条目以本 preset 层为准，其他 preset 不受影响。
+# 技能根部进包内副本：`customSkillDirs` 表达式按顺序探测 `REV_SKILLS_DIR`（指向仓库根
+# 或直接指向技能目录）、DSH 用户技能根（`$DSH_HOME/skills`，默认 `~/.dsh/skills`）、
+# 本包目录（`rev-skills/package.json` 反解），取第一个存在且至少含一个 `re-*` 条目的候选。
 - insert:
     - id: preset-rev-skills
       name: '@deepseek-ai/dsh-agent-preset'
@@ -112,7 +108,7 @@
             config:
               includeDefaultRoots: false
               customSkillDirs:
-                - !!js "(() => { const f = process.getBuiltinModule('node:fs'); const pt = process.getBuiltinModule('node:path'); const os = process.getBuiltinModule('node:os'); const r = process.getBuiltinModule('node:module').createRequire(baseUrl); const pj = (n) => { try { return pt.dirname(r.resolve(n)) } catch (e) { return '' } }; const sk = (d) => { try { return pt.isAbsolute(d) && f.existsSync(d) && f.readdirSync(d).some((e) => e.startsWith('re-')) } catch (e) { return false } }; const tj = (b) => { try { return pt.join(b, '.claude', 'skills') } catch (e) { return '' } }; const hd = () => { try { return pt.join(process.env.DSH_HOME || pt.join(os.homedir(), '.dsh'), 'skills') } catch (e) { return '' } }; const c = [tj(process.env.REV_SKILLS_DIR), process.env.REV_SKILLS_DIR, hd(), tj(pj('rev-skills/package.json')), tj(pt.join(pj('rev-skills-dsh-preset/package.json'), '..'))].filter((d) => d); return c.find(sk) || hd() })()"
+                - !!js "(() => { const f = process.getBuiltinModule('node:fs'); const pt = process.getBuiltinModule('node:path'); const os = process.getBuiltinModule('node:os'); const r = process.getBuiltinModule('node:module').createRequire(baseUrl); const pj = (n) => { try { return pt.dirname(r.resolve(n)) } catch (e) { return '' } }; const sk = (d) => { try { return pt.isAbsolute(d) && f.existsSync(d) && f.readdirSync(d).some((e) => e.startsWith('re-')) } catch (e) { return false } }; const tj = (b) => { try { return pt.join(b, '.claude', 'skills') } catch (e) { return '' } }; const hd = () => { try { return pt.join(process.env.DSH_HOME || pt.join(os.homedir(), '.dsh'), 'skills') } catch (e) { return '' } }; const c = [tj(process.env.REV_SKILLS_DIR), process.env.REV_SKILLS_DIR, hd(), tj(pj('rev-skills/package.json'))].filter((d) => d); return c.find(sk) || hd() })()"
           - id: tool-skill
             name: '@deepseek-ai/dsh-tool-skill'
           - id: present
